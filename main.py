@@ -25,7 +25,6 @@ data['Median Rent'] = data['Median Rent'].astype(float)
 # data = data[:10]
 print(data)
 
-#chromedriver_location = "/Users/chloe/Downloads/chromedriver_win32/chromedriver"
 
 driver = webdriver.Chrome()
 driver.get('https://www.ura.gov.sg/maps/')
@@ -55,12 +54,6 @@ for street in data['Street Name']:
     )
     element.click()
 
-    # element = WebDriverWait(driver, 10).until(
-    #     EC.staleness_of(
-    #         (By.CLASS_NAME, 'us-ip-poi-a-note'))
-    # )
-
-    #WebDriverWait(driver, timeout=10).until(document_initialised)
     time.sleep(1)
 
     error = True
@@ -76,7 +69,7 @@ for street in data['Street Name']:
             driver.find_element(By.XPATH, address_input).clear()
             error = False
         else:
-            time.sleep(2)
+            time.sleep(2)       # add more time if page still loading
 
 
 print(all_results)
@@ -85,6 +78,7 @@ print(data)
 
 # Group by planning area and obtain mean rent for each planning area
 print('-------EXPORTING')
+
 data.to_excel('results.xlsx')
 rent_by_area = pd.DataFrame(data.groupby(['Planning Area']).mean())
 print(rent_by_area)
