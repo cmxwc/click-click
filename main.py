@@ -22,7 +22,7 @@ data = pd.DataFrame(excel_data.iloc[2:, [0, 2]].reset_index(drop=True))
 data.columns = ['Street Name', 'Median Rent']
 data = data[data['Median Rent'] != '.']    # Remove streets with no rent value
 data['Median Rent'] = data['Median Rent'].astype(float)
-data = data[:5]
+# data = data[:10]
 print(data)
 
 #chromedriver_location = "/Users/chloe/Downloads/chromedriver_win32/chromedriver"
@@ -37,22 +37,46 @@ planning_area_txt = '//*[@id="us-ip-poi-content"]/div[1]/div[3]'
 
 all_results = []
 
+
+def document_initialised(driver):
+    return driver.execute_script("return initialised")
+
+
+driver.get('https://www.ura.gov.sg/maps/')
+driver.find_element(By.XPATH, first_gotomap).click()
+
 for street in data['Street Name']:
 
-    driver.get('https://www.ura.gov.sg/maps/')
-    driver.find_element(By.XPATH, first_gotomap).click()
     driver.find_element(By.XPATH, address_input).send_keys(street)
-    time.sleep(5)
-    driver.find_element(By.XPATH, first_result).click()
 
-    time.sleep(4)   # should probably use driver wait instead of time sleep uhh
-    page_source = driver.page_source
+    # https://www.selenium.dev/selenium/docs/api/py/webdriver_support/selenium.webdriver.support.expected_conditions.html?highlight=expected
+    element = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, first_result))
+    )
+    element.click()
 
-    soup = BeautifulSoup(page_source, 'html.parser')
-    select_area = soup.find('div', class_='us-ip-poi-a-note')
-    result = (select_area.string).rsplit(' ', 2)[0]
-    print(result)
-    all_results.append(result)
+    # element = WebDriverWait(driver, 10).until(
+    #     EC.staleness_of(
+    #         (By.CLASS_NAME, 'us-ip-poi-a-note'))
+    # )
+
+    #WebDriverWait(driver, timeout=10).until(document_initialised)
+    time.sleep(1)
+
+    error = True
+    while error:
+        page_source = driver.page_source
+        soup = BeautifulSoup(page_source, 'html.parser')
+        select_area = soup.find('div', class_='us-ip-poi-a-note')
+        print('select area:', select_area.string)
+        if select_area.string != None:
+            result = (select_area.string).rsplit(' ', 2)[0]
+            # print(result)
+            all_results.append(result)
+            driver.find_element(By.XPATH, address_input).clear()
+            error = False
+        else:
+            time.sleep(2)
 
 
 print(all_results)
@@ -61,6 +85,7 @@ print(data)
 
 # Group by planning area and obtain mean rent for each planning area
 print('-------EXPORTING')
+data.to_excel('results.xlsx')
 rent_by_area = pd.DataFrame(data.groupby(['Planning Area']).mean())
 print(rent_by_area)
 rent_by_area.to_excel('median_rent_by_planning_area.xlsx')
@@ -68,5 +93,5 @@ rent_by_area.to_excel('median_rent_by_planning_area.xlsx')
 print('-------COMPLETED')
 
 
-time.sleep(10000)
-# driver.quit()
+time.sleep(10)
+driver.quit()
